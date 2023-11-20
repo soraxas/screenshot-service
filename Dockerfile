@@ -16,7 +16,7 @@ RUN mkdir -p /app \
     && adduser -D chrome \
     && chown -R chrome:chrome /app
 
-USER chrome
+# USER chrome
 WORKDIR /app
 
 ENV CHROME_BIN=/usr/bin/chromium-browser \

@@ -111,9 +111,12 @@ func (app *application) routes() http.Handler {
 	r := mux.NewRouter()
 	r.Use(app.loggingMiddleware)
 	r.Use(app.recoverPanic)
-	r.HandleFunc("/screenshot", app.errorHandler(app.screenshot))
+	// backward compatibility
+	r.HandleFunc("/screenshot", app.errorHandler(app.url2image))
 	r.HandleFunc("/html2pdf", app.errorHandler(app.html2pdf))
+	r.HandleFunc("/html2image", app.errorHandler(app.html2image))
 	r.HandleFunc("/url2pdf", app.errorHandler(app.url2pdf))
+	r.HandleFunc("/url2image", app.errorHandler(app.url2image))
 	r.HandleFunc("/html", app.errorHandler(app.html))
 	r.PathPrefix("/").HandlerFunc(app.catchAllHandler)
 	return r
@@ -324,7 +327,7 @@ func getIntParameter(r *http.Request, paramname string) (*int, error) {
 }
 
 // http://localhost:8080/screenshot?url=https://firefart.at&w=1024&h=768
-func (app *application) screenshot(r *http.Request) (string, []byte, error) {
+func (app *application) url2image(r *http.Request) (string, []byte, error) {
 	url := getStringParameter(r, "url")
 	if url == nil {
 		return "", nil, fmt.Errorf("missing required parameter url")
@@ -396,6 +399,53 @@ func (app *application) html2pdf(r *http.Request) (string, []byte, error) {
 	}
 
 	return "application/pdf", content, nil
+}
+
+// http://localhost:8080/html2image?w=1024&h=768
+func (app *application) html2image(r *http.Request) (string, []byte, error) {
+	// optional parameters start here
+	w, err := getIntParameter(r, "w")
+	if err != nil {
+		return "", nil, err
+	}
+
+	h, err := getIntParameter(r, "h")
+	if err != nil {
+		return "", nil, err
+	}
+
+	userAgentParam := getStringParameter(r, "useragent")
+
+	tmpf, err := os.CreateTemp("", "img.*.html")
+	if err != nil {
+		return "", nil, fmt.Errorf("could not create tmp file: %w", err)
+	}
+	defer os.Remove(tmpf.Name())
+
+	bytes, err := io.Copy(tmpf, r.Body)
+	if err != nil {
+		return "", nil, fmt.Errorf("could not copy request: %w", err)
+	}
+	if bytes <= 0 {
+		return "", nil, fmt.Errorf("please provide a valid post body")
+	}
+
+	err = tmpf.Close()
+	if err != nil {
+		return "", nil, fmt.Errorf("could not close tmp file: %w", err)
+	}
+
+	path, err := filepath.Abs(tmpf.Name())
+	if err != nil {
+		return "", nil, fmt.Errorf("could not get temp file path: %w", err)
+	}
+
+	content, err := app.toImage(r.Context(), path, w, h, userAgentParam)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return "image/png", content, nil
 }
 
 // http://localhost:8080/url2pdf?w=1024&h=768&url=https://firefart.at
