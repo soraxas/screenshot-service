@@ -26,7 +26,7 @@ ENV CHROME_BIN=/usr/bin/chromium-browser \
 
 COPY --from=build-env /src/gochro .
 
-USER chrome
+#USER chrome
 
 # ENTRYPOINT [ "./gochro" ]
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
