@@ -16,6 +16,8 @@ RUN mkdir -p /app \
     && adduser -D chrome \
     && chown -R chrome:chrome /app
 
+RUN apk add dumb-init
+
 # USER chrome
 WORKDIR /app
 
@@ -24,4 +26,9 @@ ENV CHROME_BIN=/usr/bin/chromium-browser \
 
 COPY --from=build-env /src/gochro .
 
-ENTRYPOINT [ "./gochro" ]
+USER chrome
+
+# ENTRYPOINT [ "./gochro" ]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["./gochro", "-host", "0.0.0.0:80", "-disable-sandbox"]
+

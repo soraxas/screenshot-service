@@ -5,7 +5,7 @@ services:
     hostname: api_html2img
     build: .
     restart: unless-stopped
-    command: -host 0.0.0.0:80 -disable-sandbox
+    # command: ./gochro -host 0.0.0.0:80 -disable-sandbox
     # labels:
     #   - traefik.enable=true
     #   - traefik.docker.network=traefik_proxy
