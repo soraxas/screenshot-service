@@ -216,8 +216,10 @@ func (app *application) execChrome(ctxMain context.Context, action, url string, 
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 	err = cmd.Run()
-	if err != nil {
+	defer func() {
 		killChromeProcessIfRunning(cmd)
+	}()
+	if err != nil {
 		return nil, fmt.Errorf("could not execute command %w: %s", err, stderr.String())
 	}
 
@@ -244,8 +246,6 @@ func (app *application) execChrome(ctxMain context.Context, action, url string, 
 	default:
 		return nil, fmt.Errorf("unknown action %q", action)
 	}
-
-	killChromeProcessIfRunning(cmd)
 
 	return content, nil
 }
